@@ -1,1 +1,5 @@
 node_modules
+output/*
+download/*
+results.json
+all.json

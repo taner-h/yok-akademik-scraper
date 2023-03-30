@@ -5,6 +5,9 @@ import HtmlTableToJson from "html-table-to-json";
 import tabletojson from "tabletojson";
 import universities from "./universityURLs.json" assert { type: "json" };
 
+const START = 50; // BURAYI DEGISTIRIN
+const END = 100; // BURAYI DEGISTIRIN
+
 function tableToJson(table) {
   let data = [];
   for (let i = 1; i < table.rows.length; i++) {
@@ -26,7 +29,7 @@ async function getUniversityURLs(page) {
   const universityURLs = await page.evaluate(() =>
     Array.from(
       document.querySelectorAll(".searchable tr td:first-of-type a"),
-      (e) => ({ url: e.href, university: e.innerText })
+      (e) => ({ url: e.href, name: e.innerText })
     )
   );
   //   console.log(universityURLs);
@@ -50,6 +53,7 @@ function checkIfHasNextPage(page) {
 
 async function getAcademiciansOfUniversity(page, university) {
   await page.goto(university.url);
+
   const json = [];
 
   while (true) {
@@ -58,30 +62,50 @@ async function getAcademiciansOfUniversity(page, university) {
     );
     await new Promise((r) => setTimeout(r, 1000));
     const table = fs.readFileSync("./download/authorList.xls", "utf8");
-    const converted = tabletojson.Tabletojson.convert(table);
-    json.push(...converted[0]);
-    console.log(converted);
+    const converted = tabletojson.Tabletojson.convert(table)[0];
+
+    const authorInfos = await page.evaluate(() =>
+      Array.from(document.querySelectorAll("[id^='authorInfo']"), (e) => ({
+        name: e.querySelector("h4 a").innerText,
+        orcid:
+          e
+            .querySelector(".popoverData")
+            ?.getAttribute("data-content")
+            .split(":")[1] ?? "",
+        url: e.querySelector("h4 a").href,
+        guid: e.querySelector("h4 a").href.split("authorId=")[1],
+      }))
+    );
+
+    let found;
+    const merged = converted.map((author) => {
+      found = authorInfos.find(
+        (i) =>
+          i.name === author["Ad Soyad"] ||
+          i.guid === author["Araştırmacı GUID ID"]
+      );
+      return {
+        Üniversite: university.name,
+        ORCID: found?.orcid,
+        ...author,
+        // "Anahtar Kelime": author["Anahtar Kelime"]
+        //   ? author["Anahtar Kelime"].split(";").map((i) => i.trim())
+        //   : null,
+        URL: found?.url,
+      };
+    });
+
+    json.push(...merged);
+    console.log(merged);
     if (!(await checkIfHasNextPage(page))) {
-      break;
+      console.log(json.length);
+      const savePath = path.resolve(`output/${university.name}.json`);
+      fs.writeFileSync(savePath, JSON.stringify(json));
+      return merged;
     }
     let nextPageURL = await getNextPageURL(page);
     await page.goto(nextPageURL);
   }
-
-  fs.writeFileSync("results.json", JSON.stringify(json));
-
-  //   const jsonTables = HtmlTableToJson.parse(table);
-  //   console.log(jsonTables.results);
-
-  //   await page.goto(nextPageURL);
-  //   nextPageURL = await getNextPageURL(page);
-  //   await page.evaluate(() => document.querySelector("#save-list-excel").click());
-  //   await new Promise((r) => setTimeout(r, 1000));
-
-  //   const html = await page.evaluate(() => table.querySelector(".table"));
-  //   const json = tableToJson(html);
-
-  //   console.log(json);
 }
 
 async function run() {
@@ -95,7 +119,16 @@ async function run() {
   });
 
   //   const universities = await getUniversityURLs(page);
-  await getAcademiciansOfUniversity(page, universities[0]);
+  const all = [];
+
+  const sliced = universities.slice(START, END);
+  console.log(sliced);
+  for (const university of sliced) {
+    const universityData = await getAcademiciansOfUniversity(page, university);
+    all.push(...universityData);
+  }
+
+  fs.writeFileSync("all.json", JSON.stringify(all));
 
   await browser.close();
 }
