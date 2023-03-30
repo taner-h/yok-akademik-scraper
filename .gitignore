@@ -1,5 +1,5 @@
 node_modules
-output/*
-download/*
+output/*.json
+download/authorList.xls
 results.json
 all.json
