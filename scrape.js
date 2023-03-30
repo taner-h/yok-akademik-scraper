@@ -8,19 +8,6 @@ import universities from "./universityURLs.json" assert { type: "json" };
 const START = 150; // BURAYI DEGISTIRIN
 const END = 200; // BURAYI DEGISTIRIN
 
-function tableToJson(table) {
-  let data = [];
-  for (let i = 1; i < table.rows.length; i++) {
-    let tableRow = table.rows[i];
-    let rowData = [];
-    for (let j = 0; j < tableRow.cells.length; j++) {
-      rowData.push(tableRow.cells[j].innerHTML);
-    }
-    data.push(rowData);
-  }
-  return data;
-}
-
 async function getUniversityURLs(page) {
   await page.goto(
     "https://akademik.yok.gov.tr/AkademikArama/view/universityListview.jsp"
