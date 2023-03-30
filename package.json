@@ -1,0 +1,17 @@
+{
+  "name": "yok-akademik-scraper",
+  "version": "1.0.0",
+  "description": "",
+  "main": "scrape.js",
+  "scripts": {
+    "start": "node scrape.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "html-table-to-json": "^1.0.0",
+    "puppeteer": "^19.8.2",
+    "tabletojson": "^2.0.7"
+  }
+}
