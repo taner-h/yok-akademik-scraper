@@ -3,3 +3,5 @@ output/*.json
 download/authorList.xls
 results.json
 all.json
+*.csv
+*.xlsx

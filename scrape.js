@@ -4,9 +4,7 @@ import path from "path";
 import HtmlTableToJson from "html-table-to-json";
 import tabletojson from "tabletojson";
 import universities from "./universityURLs.json" assert { type: "json" };
-
-const START = 150; // BURAYI DEGISTIRIN
-const END = 200; // BURAYI DEGISTIRIN
+import { Parser } from "@json2csv/plainjs";
 
 async function getUniversityURLs(page) {
   await page.goto(
@@ -36,6 +34,46 @@ function checkIfHasNextPage(page) {
   return page.evaluate(
     () => document.querySelector(".pagination .active").nextElementSibling
   );
+}
+
+function mergeJSONs() {
+  let all = [];
+  fs.readdirSync("./output/").forEach((file) => {
+    const json = JSON.parse(fs.readFileSync("./output/" + file, "utf8"));
+    // console.log(json);
+    all = all.concat(json);
+  });
+  console.log(all.length);
+  fs.writeFileSync("all.json", JSON.stringify(all));
+}
+
+function convertToCSV() {
+  const fields = [
+    "Üniversite",
+    "ORCID",
+    "Araştırmacı ID",
+    "Unvan",
+    "Ad Soyad",
+    "Kadro Yeri",
+    "Temel Alan",
+    "Bilim Alan",
+    "Anahtar Kelime",
+    "E-Posta",
+    "Araştırmacı GUID ID",
+    "URL",
+  ];
+  const json = JSON.parse(fs.readFileSync("./all.json", "utf8"));
+  console.log(json);
+  try {
+    const opts = { fields };
+    console.log(opts);
+    const parser = new Parser(opts);
+    const csv = parser.parse(json);
+    console.log(csv);
+    fs.writeFileSync("all.csv", csv);
+  } catch (err) {
+    console.error(err);
+  }
 }
 
 async function getAcademiciansOfUniversity(page, university) {
@@ -106,11 +144,10 @@ async function run() {
   });
 
   //   const universities = await getUniversityURLs(page);
+
   const all = [];
 
-  const sliced = universities.slice(START, END);
-  console.log(sliced);
-  for (const university of sliced) {
+  for (const university of universities) {
     const universityData = await getAcademiciansOfUniversity(page, university);
     all.push(...universityData);
   }
@@ -121,3 +158,5 @@ async function run() {
 }
 
 run();
+// mergeJSONs();
+// convertToCSV();
